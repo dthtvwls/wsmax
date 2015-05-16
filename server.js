@@ -1,27 +1,21 @@
 // Set up WS server and a simple HTML/JS client
-var wss = new (require('ws').Server)({ server: require('http').createServer(function (req, res) {
+var server = new (require('ws').Server)({ server: require('http').createServer(function (req, res) {
 
-  res.writeHead(200, { 'Content-Type': 'text/html' })
+  res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end('<script>\
-  new WebSocket("ws://" + location.host).onmessage = function (event) {\
-    console.log(event.data);\
-  }\
+  var client = new WebSocket("ws://" + location.host);\
+  client.onmessage = function (event) { document.body.innerText = event.data; };\
+  onkeypress = function (event) { client.send(""); };\
   </script>');
 
 }).listen(process.env.PORT || 5000) });
 
-// Broadcast number of connected clients
-var souljaBoyTellEm = function () {
-  wss.clients.forEach(function (client) {
-    client.send(wss.clients.length.toString());
+// Respond to messages with number of connected clients
+server.on('connection', function (connection) {
+  connection.on('message', function () {
+    connection.send(server.clients.length.toString());
   });
-};
-
-// Establish listeners for connect & disconnect events
-wss.on('connection', function (ws) {
-  ws.on('close', souljaBoyTellEm);
-  souljaBoyTellEm();
 });
 
 // Manually collect garbage every 30 seconds
-setInterval(global.gc, 30 * 1000);
+setInterval(gc, 30 * 1000);

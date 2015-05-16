@@ -1,8 +1,14 @@
 {
   "dependencies": {
+    "forever": "^0.14.1",
     "ws": "^0.7.1"
   },
+  "devDependencies": {
+    "phantom": "^0.7.2",
+    "thor": "^1.0.0"
+  },
   "scripts": {
-    "start": "node --nouse-idle-notification --expose-gc server.js"
+    "start": "forever -c 'node --nouse-idle-notification --expose-gc' server.js",
+    "test": "node test.js"
   }
 }
