@@ -1,21 +1,30 @@
-// Set up WS server and a simple HTML/JS client
-var server = new (require('ws').Server)({ server: require('http').createServer(function (req, res) {
+// Log memory usage before doing GC. Seems to blow up the file limit sooner than without.
+var gcLog = function () {
+  console.log(new Date().toISOString() + JSON.stringify(process.memoryUsage()));
+  gc();
+};
 
-  res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.end('<script>\
-  var client = new WebSocket("ws://" + location.host);\
-  client.onmessage = function (event) { document.body.innerText = event.data; };\
-  onkeypress = function (event) { client.send(""); };\
-  </script>');
+// Tell original client how many clients are connected
+var reporter = function () {
+  if (this.clients[0]) this.clients[0].send(this.clients.length.toString());
+};
 
-}).listen(process.env.PORT || 5000) });
-
-// Respond to messages with number of connected clients
-server.on('connection', function (connection) {
-  connection.on('message', function () {
-    connection.send(server.clients.length.toString());
-  });
-});
-
-// Manually collect garbage every 30 seconds
+// Garbage collect every 30 seconds
 setInterval(gc, 30 * 1000);
+
+// Create the WS server
+new (require('ws').Server)({
+
+  // Attach it to an HTTP server that serves a tiny web client
+  server: require('http').createServer(function (req, res) {
+
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end('<script>new WebSocket("ws://"+location.host).onmessage=function(msg){document.body.innerText=msg.data;};</script>');
+
+  }).listen(process.env.PORT || 5000)
+
+// Call the reporter on connection and close events
+}).on('connection', function (connection) {
+  reporter.call(this);
+  connection.on('close', reporter.bind(this));
+});
