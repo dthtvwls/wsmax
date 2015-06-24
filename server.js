@@ -19,13 +19,11 @@ var wss = new ws.Server({
   logSocketCount();
 });
 
-// Log memory usage before doing GC. Seems to blow up the file limit sooner than without.
-setInterval(logMemoryUsage, 30 * 1000);
-
-function logMemoryUsage () {
+// Log memory usage before doing GC every 30s. Seems to blow up the file limit sooner than without.
+setInterval(function () {
   console.log(new Date().toISOString() + JSON.stringify(process.memoryUsage()));
   gc();
-}
+}, 30 * 1000);
 
 function getSocketCount () {
   return wss.clients.length.toString();
@@ -50,9 +48,7 @@ function onmessage (message) {
   } else {
     var self = this;
     setTimeout(function () {
-      if (self.readyState === 1) {
-        self.send(randomBytes(message.length));
-      }
+      self.readyState === 1 && self.send(randomBytes(message.length));
     }, Math.random() * 1000);
   }
 }
