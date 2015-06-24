@@ -1,30 +1,58 @@
-// Log memory usage before doing GC. Seems to blow up the file limit sooner than without.
-var gcLog = function () {
+var fs = require('fs');
+var ws = require('ws');
+var http = require('http');
+var randomBytes = require('crypto').randomBytes;
+
+var html = fs.readFileSync('./index.html');
+var browsers = [];
+
+var www = http.createServer(function (req, res) {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(html);
+}).listen(process.env.PORT || 5000);
+
+var wss = new ws.Server({
+  server: www
+}).on('connection', function (socket) {
+  socket.on('message', onmessage);
+  socket.on('close', logSocketCount);
+  logSocketCount();
+});
+
+// Log memory usage before doing GC every 30s. Seems to blow up the file limit sooner than without.
+setInterval(function () {
   console.log(new Date().toISOString() + JSON.stringify(process.memoryUsage()));
   gc();
-};
+}, 30 * 1000);
 
-// Tell original client how many clients are connected
-var reporter = function () {
-  if (this.clients[0]) this.clients[0].send(this.clients.length.toString());
-};
+function getSocketCount () {
+  return wss.clients.length.toString();
+}
 
-// Garbage collect every 30 seconds
-setInterval(gc, 30 * 1000);
+function logSocketCount () {
+  var n = getSocketCount();
+  browsers.forEach(function (b) {
+    if (b.readyState === 1) {
+      b.send(n);
+    }
+  });
+  console.log(n);
+}
 
-// Create the WS server
-new (require('ws').Server)({
-
-  // Attach it to an HTTP server that serves a tiny web client
-  server: require('http').createServer(function (req, res) {
-
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end('<script>new WebSocket("ws://"+location.host).onmessage=function(msg){document.body.innerText=msg.data;};</script>');
-
-  }).listen(process.env.PORT || 5000)
-
-// Call the reporter on connection and close events
-}).on('connection', function (connection) {
-  reporter.call(this);
-  connection.on('close', reporter.bind(this));
-});
+function onmessage (message) {
+  if (message === 'browser') {
+    this.removeListener('message', onmessage);
+    browsers.push(this);
+    this.on('close', function () {
+      browsers.splice(browsers.indexOf(this), 1);
+    });
+    this.send(getSocketCount());
+  } else {
+    var self = this;
+    setTimeout(function () {
+      if (self.readyState === 1) {
+        self.send(randomBytes(message.length));
+      }
+    }, Math.random() * 1000);
+  }
+}

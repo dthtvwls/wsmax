@@ -1,0 +1,9 @@
+<script>
+  var ws = new WebSocket('ws://' + location.host);
+  ws.onmessage = function (msg) {
+    document.body.innerText = msg.data;
+  };
+  ws.onopen = function () {
+    ws.send('browser');
+  };
+</script>
