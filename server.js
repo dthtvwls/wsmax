@@ -32,7 +32,9 @@ function getSocketCount () {
 function logSocketCount () {
   var n = getSocketCount();
   browsers.forEach(function (b) {
-    b.readyState === 1 && b.send(n);
+    if (b.readyState === 1) {
+      b.send(n);
+    }
   });
   console.log(n);
 }
@@ -48,7 +50,9 @@ function onmessage (message) {
   } else {
     var self = this;
     setTimeout(function () {
-      self.readyState === 1 && self.send(randomBytes(message.length));
+      if (self.readyState === 1) {
+        self.send(randomBytes(message.length));
+      }
     }, Math.random() * 1000);
   }
 }
