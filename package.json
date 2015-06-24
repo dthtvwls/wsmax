@@ -4,11 +4,10 @@
     "ws": "^0.7.1"
   },
   "devDependencies": {
-    "phantom": "^0.7.2",
     "thor": "^1.0.0"
   },
   "scripts": {
     "start": "forever -c 'node --nouse-idle-notification --expose-gc' server.js",
-    "test": "node test.js"
+    "test": "thor --amount 750 --messages 30 --buffer 256"
   }
 }
